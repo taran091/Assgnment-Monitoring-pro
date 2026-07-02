@@ -1,0 +1,56 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# prometheus.yml — Deployed on the Video Recorder Server in each warehouse
+#
+# This Prometheus instance:
+#   1. Scrapes Node Exporter on every edge device (port 9100)
+#   2. Scrapes the Protex app exporter on every edge device (port 9200)
+#   3. remote_writes all metrics to Amazon Managed Prometheus (AMP)
+#
+# Deploy via: ansible-playbook -i inventory.yml playbooks/prometheus.yml
+# ─────────────────────────────────────────────────────────────────────────────
+
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  external_labels:
+    warehouse_id: "${WAREHOUSE_ID}"     # e.g. "eu-warehouse-amsterdam-01"
+    region:       "${REGION}"           # e.g. "eu"
+
+# ── Remote write to Amazon Managed Prometheus ─────────────────────────────────
+remote_write:
+  - url: "${AMP_REMOTE_WRITE_ENDPOINT}"
+    sigv4:
+      region: "${AWS_REGION}"
+      # IAM role on the video recorder server must have aps:RemoteWrite
+    queue_config:
+      max_samples_per_send: 1000
+      max_shards:           10
+      capacity:             2500
+
+# ── Scrape: Node Exporter (system metrics) ────────────────────────────────────
+scrape_configs:
+  - job_name: "node_exporter"
+    static_configs:
+      - targets:
+          - "protex-device-001:9100"
+          - "protex-device-002:9100"
+          - "protex-device-003:9100"
+          # Add devices as deployed
+    relabel_configs:
+      - source_labels: [__address__]
+        regex:        "([^:]+):.*"
+        target_label: device_id
+        replacement:  "$1"
+
+  # ── Scrape: Protex App Exporter (inference + event metrics) ─────────────────
+  - job_name: "protex_app"
+    static_configs:
+      - targets:
+          - "protex-device-001:9200"
+          - "protex-device-002:9200"
+          - "protex-device-003:9200"
+    relabel_configs:
+      - source_labels: [__address__]
+        regex:        "([^:]+):.*"
+        target_label: device_id
+        replacement:  "$1"

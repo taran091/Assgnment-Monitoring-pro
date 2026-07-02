@@ -1,0 +1,19 @@
+# /etc/systemd/system/protex-heartbeat.service
+# Pushes a heartbeat metric to the local Prometheus pushgateway every 30 seconds.
+# If this service stops, the protex:device_seconds_since_heartbeat metric will
+# exceed the threshold and fire the EdgeDeviceOffline alert within 5 minutes.
+
+[Unit]
+Description=Protex Edge Device Heartbeat
+After=network.target
+
+[Service]
+Type=simple
+Environment=PUSHGATEWAY_URL=http://video-recorder-server:9091
+Environment=DEVICE_ID=%H
+ExecStart=/usr/local/bin/protex-heartbeat.sh
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
