@@ -1,6 +1,6 @@
 # Protex Man-in-the-Middle Observability Platform
 
-Terraform infrastructure for the Protex centralised observability platform.
+Terraform infrastructure for the AI centralised observability platform.
 Grafana (AMG) connects directly to four regional Aurora PostgreSQL databases
 (EU, US, CA, APAC) via VPC Peering — no intermediate API, no custom application code.
 
